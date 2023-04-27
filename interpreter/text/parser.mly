@@ -4,7 +4,7 @@ open Types
 open Ast
 open Operators
 open Script
-
+open ParseUtil
 
 (* Error handling *)
 
@@ -93,28 +93,6 @@ let name s at =
 
 
 (* Symbolic variables *)
-
-module VarMap = Map.Make(String)
-
-type space = {mutable map : int32 VarMap.t; mutable count : int32}
-let empty () = {map = VarMap.empty; count = 0l}
-
-type types = {space : space; mutable list : type_ list}
-let empty_types () = {space = empty (); list = []}
-
-type context =
-  { types : types; tables : space; memories : space;
-    funcs : space; locals : space; globals : space;
-    datas : space; elems : space;
-    labels : int32 VarMap.t; deferred_locals : (unit -> unit) list ref
-  }
-
-let empty_context () =
-  { types = empty_types (); tables = empty (); memories = empty ();
-    funcs = empty (); locals = empty (); globals = empty ();
-    datas = empty (); elems = empty ();
-    labels = VarMap.empty; deferred_locals = ref []
-  }
 
 let force_locals (c : context) =
   List.fold_right Stdlib.(@@) !(c.deferred_locals) ();
@@ -239,10 +217,12 @@ let inline_type_explicit (c : context) x ft at =
 %token INPUT OUTPUT
 %token EOF
 
-%start script script1 module1
+%start script script1 module1 import_desc type_
 %type<Script.script> script
 %type<Script.script> script1
 %type<Script.var option * Script.definition> module1
+%type<ParseUtil.context -> unit -> Ast.import_desc'> import_desc
+%type<Ast.type_> type_
 
 %%
 
